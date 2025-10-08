@@ -3,7 +3,8 @@
 WITH tb_transacao AS (
 
     SELECT *,
-           substr(dtCriacao, 0, 11) AS dtDia  
+           substr(dtCriacao, 0, 11) AS dtDia,
+           cast(substr(DtCriacao, 12, 2) AS int) AS dtHora
 
     FROM transacoes
     WHERE dtCriacao < '2025-09-28'
@@ -11,7 +12,12 @@ WITH tb_transacao AS (
 
 tb_agg_transacao AS (
 
-       SELECT IdCliente, -- frequencia em dias
+       SELECT IdCliente, 
+       
+              -- idade na base (primeira interacao)
+              max(julianday(date('2025-09-28', '-1 day')) - julianday(dtCriacao)) AS idadeDias,
+
+              -- frequencia em dias
               count(DISTINCT dtDia) AS qtdeAtivacaoVida,
               count(DISTINCT CASE WHEN dtDia >= date( '2025-09-28', '-7 day') THEN dtDia END) AS qtdeAtivacaoD7,
               count(DISTINCT CASE WHEN dtDia >= date( '2025-09-28', '-14 day') THEN dtDia END) AS qtdeAtivacaoD14,
@@ -44,7 +50,17 @@ tb_agg_transacao AS (
               sum(CASE WHEN dtDia >= date( '2025-09-28', '-7 day') AND qtdePontos < 0 THEN qtdePontos  ELSE 0 END) AS qtdePontosNegD7,
               sum(CASE WHEN dtDia >= date( '2025-09-28', '-14 day') AND qtdePontos < 0 THEN qtdePontos ELSE 0 END) AS qtdePontosNegD14,
               sum(CASE WHEN dtDia >= date( '2025-09-28', '-28 day') AND qtdePontos < 0 THEN qtdePontos ELSE 0 END) AS qtdePontosNegD28,
-              sum(CASE WHEN dtDia >= date( '2025-09-28', '-56 day') AND qtdePontos < 0 THEN qtdePontos ELSE 0 END) AS qtdePontosNegD56
+              sum(CASE WHEN dtDia >= date( '2025-09-28', '-56 day') AND qtdePontos < 0 THEN qtdePontos ELSE 0 END) AS qtdePontosNegD56,
+
+              -- periodo assistido -- ajustando hoprarios de UTC para BRT (UTC -3)
+              count(CASE WHEN dtHora BETWEEN 10 AND 14 THEN IdTransacao END) AS qtdeTransacaoManha,
+              count(CASE WHEN dtHora BETWEEN 15 AND 21 THEN IdTransacao END) AS qtdeTransacaoTarde,
+              count(CASE WHEN dtHora > 21 OR dtHora < 10 THEN IdTransacao END) AS qtdeTransacaoNoite, -- madrugada vira noite porque quase nao tem
+
+              -- percentual de periodo assistido -- ajustando hoprarios de UTC para BRT (UTC -3)
+              1. * count(CASE WHEN dtHora BETWEEN 10 AND 14 THEN IdTransacao END) / count(IdTransacao) AS pctTransacaoManha,
+              1. * count(CASE WHEN dtHora BETWEEN 15 AND 21 THEN IdTransacao END) / count(IdTransacao) AS pctTransacaoTarde,
+              1. * count(CASE WHEN dtHora > 21 OR dtHora < 10 THEN IdTransacao END) / count(IdTransacao) AS pctTransacaoNoite 
 
 
        FROM tb_transacao
@@ -115,23 +131,67 @@ tb_intervalo_dias AS (
               avg(CASE WHEN dtDia >= date('2025-09-28', '-28 day') THEN julianday(dtDia) - julianday(lagDia) END) AS avgIntervaloDias28 -- se null tende a infinito (corrigir depois com o maior intervalo da base no pipeline)
 
        FROM tb_lag_dia
+       GROUP BY IdCliente
+),
+
+tb_share_produtos AS (
+
+       SELECT -- percentual de qual produto cada usuário utiliza
+              IdCliente, -- não da para confirmar que todos os produtos estão aqui, tem produtos não cadastrados
+              1. * COUNT(CASE WHEN descNomeProduto = 'ChatMessage' THEN t1.IdTransacao END) / count(t1.IdTransacao) AS qtdeChatMessage,
+              1. * COUNT(CASE WHEN descNomeProduto = 'Airflow Lover' THEN t1.IdTransacao END) / count(t1.IdTransacao) AS qtdeAirflowLover,
+              1. * COUNT(CASE WHEN descNomeProduto = 'R Lover' THEN t1.IdTransacao END) / count(t1.IdTransacao) AS qtdeRLover,
+              1. * COUNT(CASE WHEN descNomeProduto = 'Resgatar Ponei' THEN t1.IdTransacao END) / count(t1.IdTransacao) AS qtdeResgatarPonei,
+              1. * COUNT(CASE WHEN descNomeProduto = 'Lista de presença ' THEN t1.IdTransacao END) / count(t1.IdTransacao) AS qtdeListadepresenca ,
+              1. * COUNT(CASE WHEN descNomeProduto = 'Presença Streak' THEN t1.IdTransacao END) / count(t1.IdTransacao) AS qtdePresencaStreak,
+              1. * COUNT(CASE WHEN descNomeProduto = 'Troca de Pontos StremElements' THEN t1.IdTransacao END) / count(t1.IdTransacao) AS qtdeTrocadePontosStremElements,
+              1. * COUNT(CASE WHEN descNomeProduto = 'Reembolso: Troca de Pontos StreamElements' THEN t1.IdTransacao END) / count(t1.IdTransacao) AS qtdeReembolsoTrocadePontosStreamElements,
+              1. * COUNT(CASE WHEN descCategoriaProduto = 'rpg' THEN t1.IdTransacao END) / count(t1.IdTransacao) AS qtdeRpg,
+              1. * COUNT(CASE WHEN descCategoriaProduto = 'churn_model' THEN t1.IdTransacao END) / count(t1.IdTransacao) AS qtdeChurn_model
+
+       FROM tb_transacao AS t1
+
+       LEFT JOIN transacao_produto AS t2
+       ON t1.IdTransacao = t2.IdTransacao
+
+       LEFT JOIN produtos AS t3
+       ON t2.IdProduto = t3.IdProduto
 
        GROUP BY IdCliente
+),
+
+tb_join AS (
+
+       SELECT t1.*, -- features transacionais (interação chat)
+              t2.qtdeHorasVida,
+              t2.qtdeHorasD7,
+              t2.qtdeHorasD14,
+              t2.qtdeHorasD28,
+              t2.qtdeHorasD56,
+              t3.avgIntervaloDiasVida,
+              t3.avgIntervaloDias28,
+              t4.qtdeChatMessage,
+              t4.qtdeAirflowLover,
+              t4.qtdeRLover,
+              t4.qtdeResgatarPonei,
+              t4.qtdeListadepresenca,
+              t4.qtdePresencaStreak,
+              t4.qtdeTrocadePontosStremElements,
+              t4.qtdeRpg,
+              t4.qtdeChurn_model
+
+       FROM tb_agg_calc AS t1
+
+       LEFT JOIN tb_hora_cliente AS t2 
+       ON t1.IdCliente = t2.IdCliente
+
+       LEFT JOIN tb_intervalo_dias AS t3
+       ON t1.IdCliente = t3.IdCliente
+
+       LEFT JOIN tb_share_produtos AS t4 
+       ON t1.IdCliente = t4.IdCliente
 )
 
-SELECT t1.*,
-       t2.qtdeHorasVida,
-       t2.qtdeHorasD7,
-       t2.qtdeHorasD14,
-       t2.qtdeHorasD28,
-       t2.qtdeHorasD56,
-       t3.avgIntervaloDiasVida,
-       t3.avgIntervaloDias28
-
-FROM tb_agg_calc AS t1
-
-LEFT JOIN tb_hora_cliente AS t2 
-ON t1.IdCliente = t2.IdCliente
-
-LEFT JOIN tb_intervalo_dias AS t3
-ON t1.IdCliente = t3.IdCliente
+SELECT date('2025-09-28', '-1 day') as dtRef,
+       *
+FROM tb_join
