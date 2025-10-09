@@ -7,7 +7,7 @@ WITH tb_life_cycle_atual AS (
 
     FROM life_cycle 
 
-    WHERE dtRef = date('2025-10-01', '-1 day')
+    WHERE dtRef = date('{date}', '-1 day')
 
 ),
 
@@ -18,7 +18,7 @@ SELECT IdCliente, -- ciclo de vida ultimos 28 dias
 
 FROM life_cycle
 
-WHERE dtRef = date('2025-10-01', '-29 day')
+WHERE dtRef = date('{date}', '-29 day')
 
 ),
 
@@ -34,7 +34,7 @@ tb_share_ciclos AS (
             1. * SUM(CASE WHEN descLifeCycle = '02-REBORN' THEN 1 ELSE 0 END) / COUNT(*) AS pctReborn
 
     FROM life_cycle
-    WHERE dtRef < '2025-10-01'
+    WHERE dtRef < '{date}'
 
     GROUP BY idCliente
 
@@ -42,44 +42,44 @@ tb_share_ciclos AS (
 
 tb_avg_ciclo AS (
 
-SELECT descLifeCycleAtual, -- calcular a media da base para ver onde ele se encaixa 
-       AVG(qtdeFrequencia) AS avgFreqGrupo
-
-FROM tb_life_cycle_atual
-
-GROUP BY descLifeCycleAtual
+     SELECT descLifeCycleAtual, -- calcular a media da base para ver onde ele se encaixa 
+            AVG(qtdeFrequencia) AS avgFreqGrupo
+     
+     FROM tb_life_cycle_atual
+     
+     GROUP BY descLifeCycleAtual
 
 ),
 
 tb_join AS (
 
-SELECT t1.*,
-       t2.descLifeCycleD28,
-       t3.pctCurioso,
-       t3.pctFiel,
-       t3.pctTurista,
-       t3.pctDesencantada,
-       t3.pctZumbi,
-       t3.pctReconquistado,
-       t3.pctReborn,
-       t4.avgFreqGrupo,
-       1. * t1.qtdeFrequencia / t4.avgFreqGrupo AS ratioFreqGrupo -- comparativo com o propria base (proprio grupo)
-
-FROM tb_life_cycle_atual AS t1
-
-LEFT JOIN tb_life_cycle_D28 AS t2
-ON t1.IdCliente = t2.IdCliente
-
-
-LEFT JOIN tb_share_ciclos AS t3
-ON t1.IdCliente = t3.IdCliente
-
-LEFT JOIN tb_avg_ciclo AS t4
-ON t1.descLifeCycleAtual = t4.descLifeCycleAtual
+    SELECT t1.*,
+           t2.descLifeCycleD28,
+           t3.pctCurioso,
+           t3.pctFiel,
+           t3.pctTurista,
+           t3.pctDesencantada,
+           t3.pctZumbi,
+           t3.pctReconquistado,
+           t3.pctReborn,
+           t4.avgFreqGrupo,
+           1. * t1.qtdeFrequencia / t4.avgFreqGrupo AS ratioFreqGrupo -- comparativo com o propria base (proprio grupo)
+    
+    FROM tb_life_cycle_atual AS t1
+    
+    LEFT JOIN tb_life_cycle_D28 AS t2
+    ON t1.IdCliente = t2.IdCliente
+    
+    
+    LEFT JOIN tb_share_ciclos AS t3
+    ON t1.IdCliente = t3.IdCliente
+    
+    LEFT JOIN tb_avg_ciclo AS t4
+    ON t1.descLifeCycleAtual = t4.descLifeCycleAtual
 
 )
 
-SELECT date('2025-10-01', '-1 day') AS dtRef,
+SELECT date('{date}', '-1 day') AS dtRef,
        * 
 
 FROM tb_join

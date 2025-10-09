@@ -1,4 +1,5 @@
 # %%
+# HARDCODED SUBSTITUIDA POR exec_query
 
 import datetime
 from tqdm import tqdm
