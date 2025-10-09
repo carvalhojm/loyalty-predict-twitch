@@ -1,4 +1,8 @@
 # %%
+# HARDCODED SUBSTITUIDA POR exec_query
+
+import datetime
+from tqdm import tqdm
 
 import pandas as pd
 import sqlalchemy
@@ -14,33 +18,25 @@ query = import_query("life_cycle.sql")
 
 engine_app = sqlalchemy.create_engine("sqlite:///../../data/loyalty-system/database.db")
 # grava dados da análise
-engine_analitycal = sqlalchemy.create_engine("sqlite:///../../data/analytics/database.db")
+engine_analytical = sqlalchemy.create_engine("sqlite:///../../data/analytics/database.db")
 
 # %%
 
-dates = [
-    '2024-05-01',
-    '2024-06-01',
-    '2024-07-01',
-    '2024-08-01',
-    '2024-09-01',
-    '2024-10-01',
-    '2024-11-01',
-    '2024-12-01',
-    '2025-01-01',
-    '2025-02-01',
-    '2025-03-01',
-    '2025-04-01',
-    '2025-05-01',
-    '2025-06-01',
-    '2025-07-01',
-    '2025-08-01',
-    '2025-09-01',
-]
+def date_range(start, stop):
+    dates = []
+    while start <= stop:
+        dates.append(start)
+        dt_start = datetime.datetime.strptime(start, '%Y-%m-%d') + datetime.timedelta(days=1)
+        start = datetime.datetime.strftime(dt_start, '%Y-%m-%d')
+    return dates
 
-for i in dates:
+
+dates = date_range('2024-09-01', '2025-10-01')
+
+for i in tqdm(dates):
+
     
-    with engine_analitycal.connect() as con:
+    with engine_analytical.connect() as con:
         try:
             query_delete = f"DELETE FROM life_cycle WHERE dtRef = date('{i}', '-1 day')"
             print(query_delete)
@@ -49,8 +45,6 @@ for i in dates:
         except Exception as err:
             print(err)
 
-
-    print(i)
     query_format = query.format(date=i)
     df = pd.read_sql(query_format, engine_app)
-    df.to_sql("life_cycle", engine_analitycal, index=False, if_exists="append")
+    df.to_sql("life_cycle", engine_analytical, index=False, if_exists="append")
