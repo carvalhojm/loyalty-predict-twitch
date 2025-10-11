@@ -1,5 +1,6 @@
 -- ABT
-CREATE TABLE abt_fiel AS
+DROP TABLE IF EXISTS abt_fiel;
+CREATE TABLE IF NOT EXISTS abt_fiel AS
 
 WITH tb_join AS ( 
 
@@ -17,7 +18,7 @@ WITH tb_join AS (
     AND date(t1.dtRef, '+28 day') = date(t2.dtRef)
 
     WHERE ((t1.dtRef >= '2024-03-01' AND t1.dtRef <= '2025-08-01') 
-            OR t1.dtRef = '2025-09-01') -- safra e safra virgem para aplicar no modelo dados separados temporalmente
+            OR t1.dtRef = '2025-09-01') -- safra e safra virgem para aplicar no modelo dados separados temporalmente (out of time)
     AND t1.descLifeCycle <> '05-ZUMBI' -- retirando zumbis
 
 ),
@@ -142,3 +143,6 @@ AND t1.dtRef = t3.dtRef
 LEFT JOIN fs_education AS t4
 ON t1.IdCliente = t4.idCliente
 AND t1.dtRef = t4.dtRef
+
+WHERE t3.dtRef IS NOT NULL -- correção bug dia 31 com 17 Nulls
+;
