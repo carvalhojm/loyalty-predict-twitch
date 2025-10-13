@@ -2,7 +2,8 @@
 
 import pandas as pd
 
-# pd.set_option('display.max_xolumns', None)
+pd.set_option('display.max_columns', None)
+pd.set_option('display.max_rows', None)
 
 import sqlalchemy 
 
@@ -55,6 +56,58 @@ s_nas
 # df[df['descLifeCycleAtual'].isna()]
 
 # %%
+# EXPLORE BIVARIADA
+
+# corrigir formatos
+
+cat_features = ['descLifeCycleAtual', 'descLifeCycleD28']
+
+num_features = list(set(features) - set(cat_features))
+# num_features
 
 df_train = X_train.copy()
 df_train[target] = y_train.copy()
+
+# converter para numericas
+df_train[num_features] = df_train[num_features].astype(float)
+
+# analise bivariada
+bivariada = df_train.groupby(target)[num_features].median().T
+
+# diferença de intensidade de cada feature
+# se = 1 não faz diferença para o modelo
+bivariada['ratio'] = (bivariada[1] + 0.001) / (bivariada[0] + 0.001)
+bivariada.sort_values(by='ratio', ascending=False)
+
+# remover features irrelevantes
+to_remove = bivariada[bivariada['ratio']==1].index.tolist()
+to_remove
+
+for i in to_remove:
+    features.remove(i)
+    num_features.remove(i)
+
+# %%
+# contagem das features
+len(num_features)
+
+# %%
+
+# refazendo analise bivariada
+bivariada = df_train.groupby(target)[num_features].median().T
+bivariada['ratio'] = (bivariada[1] + 0.001) / (bivariada[0] + 0.001)
+bivariada.sort_values(by='ratio', ascending=False)
+
+# %%
+# bivarida categoriga
+# quem tem mais propenção de se manter fiel?
+# fazer gráfico
+bivariada_cat = df_train.groupby('descLifeCycleAtual')[target].mean()
+bivariada_cat
+
+# %%
+# comprovando que zumbi precisavam sair da análise
+# fazer gráfico
+bivariada_D28_cat = df_train.groupby('descLifeCycleD28')[target].mean()
+bivariada_D28_cat
+
