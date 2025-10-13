@@ -1,11 +1,14 @@
 # %%
-
 import pandas as pd
 
-pd.set_option('display.max_columns', None)
-pd.set_option('display.max_rows', None)
-
 import sqlalchemy 
+
+from feature_engine import selection
+from feature_engine import imputation
+from feature_engine import encoding
+
+# pd.set_option('display.max_columns', None)
+# pd.set_option('display.max_rows', None)
 
 con = sqlalchemy.create_engine("sqlite:///../../data/analytics/database.db")
 
@@ -18,7 +21,7 @@ df.head()
 # %%
 # SAMPLE - OOT 
 
-df_oot = df[df['dtRef']==df['dtRef'].max()]
+df_oot = df[df['dtRef']==df['dtRef'].max()].reset_index(drop=True)
 df_oot
 
 # %%
@@ -59,7 +62,6 @@ s_nas
 # EXPLORE BIVARIADA
 
 # corrigir formatos
-
 cat_features = ['descLifeCycleAtual', 'descLifeCycleD28']
 
 num_features = list(set(features) - set(cat_features))
@@ -79,13 +81,12 @@ bivariada = df_train.groupby(target)[num_features].median().T
 bivariada['ratio'] = (bivariada[1] + 0.001) / (bivariada[0] + 0.001)
 bivariada.sort_values(by='ratio', ascending=False)
 
-# remover features irrelevantes
-to_remove = bivariada[bivariada['ratio']==1].index.tolist()
-to_remove
+# to_remove = bivariada[bivariada['ratio']==1].index.tolist()
+# to_remove
 
-for i in to_remove:
-    features.remove(i)
-    num_features.remove(i)
+# for i in to_remove:
+#     features.remove(i)
+#     num_features.remove(i)
 
 # %%
 # contagem das features
@@ -110,4 +111,72 @@ bivariada_cat
 # fazer gráfico
 bivariada_D28_cat = df_train.groupby('descLifeCycleD28')[target].mean()
 bivariada_D28_cat
+
+# %%
+## MODIFY - DROP
+
+X_train[num_features] = X_train[num_features].astype(float)
+
+# remover features irrelevantes
+to_remove = bivariada[bivariada['ratio']==1].index.tolist()
+to_remove
+
+# %%
+# criando um objeto com as alterações para remoção de features
+drop_features = selection.DropFeatures(to_remove)
+drop_features
+
+# %%
+# aplicar alterações
+X_train_transform = drop_features.fit_transform(X_train)
+
+# %%
+## MODIFY - MISSING
+# conferindo features com valores null
+s_na = X_train_transform.isna().mean()
+s_na[s_na>0]
+
+# %%
+# imputação para 0
+fill_0 = ['github2025', 'python2025']
+imput_0 = imputation.ArbitraryNumberImputer(arbitrary_number=0, 
+                                            variables=fill_0)
+
+# imputação para categorico
+imput_new = imputation.CategoricalImputer(
+    fill_value='Nao-Usuario',
+    variables=['descLifeCycleD28']
+)
+
+# imputação para maior valor
+imput_1000 = imputation.ArbitraryNumberImputer(
+    arbitrary_number=1000,
+    variables=['avgIntervaloDiasVida',
+               'avgIntervaloDias28',
+               'qtdeDiasUltiAtividade']
+)
+
+# aplicar no treino as imputações
+X_train_transform = imput_0.fit_transform(X_train_transform)
+X_train_transform = imput_new.fit_transform(X_train_transform)
+X_train_transform = imput_1000.fit_transform(X_train_transform)
+
+# %%
+# checagem features com valores null
+s_na = X_train_transform.isna().mean()
+s_na[s_na>0]
+
+# %%
+## MODIFY - ONEHOT
+
+# variaveis categoricas modificadas para ML
+X_train_transform[cat_features].head()
+
+# se tivessem muitas categorias categoricas -> 
+# usar MeanEncoder() do feature-engine
+
+onehot = encoding.OneHotEncoder(variables=cat_features)
+
+X_train_transform = onehot.fit_transform(X_train_transform)
+X_train_transform.head()
 
