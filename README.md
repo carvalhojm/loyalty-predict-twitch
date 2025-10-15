@@ -2,33 +2,23 @@
 
 🔄 Projeto em desenvolvimento
 
-Construindo uma solução de Data Science junto com a comunidade [Teo Me Why](https://teomewhy.org/)!
-
-[Link do repositório original](https://github.com/TeoMeWhy/loyalty-predict)
+Construindo uma solução de Data Science com o objetivo de identificar perda ou ganho de engajamento dos usuários da comunidade [Teo Me Why](https://teomewhy.org/).
 
 <img src="img/loyalty_predict_canva.png">
 
 
 # Índice
 
-- [Objetivo](#objetivo)
 - [Ações](#ações)
-- [Pré Requisitos](#pré-requisitos)
 - [Etapas](#etapas)
+- [Principais Resultados](#principais-resultados)
 - [Fonte de Dados](#fontes-de-dados)
 
-
-## Objetivo
-
-Identificar perda ou ganho de engajamento dos usuários da nossa comunidade.
 
 ## Ações
 
 - Métricas gerais do TMW;
 - Definição do Ciclo de Vida dos usuários;
-
-<img src="img/Ciclo-de-Vida-do-Cliente-por-Mes.png">
-
 - Análise de Agrupamento dos diferentes perfís de usuários;
 - Criar modelo de Machine Learning que detecte a perda ou ganho de engajamento;
 - Incentivo por meio de pontos para usuários mais engajados;
@@ -43,9 +33,24 @@ Identificar perda ou ganho de engajamento dos usuários da nossa comunidade.
 - Treinamento do modelo;
 - Registro do modelo no MLFlow;
 - Criação de App para Inferência em Tempo Real;
-- Integração com Ecossistema TMW;
+- Integração com Ecossistema TMW
+
+As etapas seguiram as etapas metodologicas do CRISP-DM e do SEMMA para a criação do modelo.
+
+<img src="img/CRISP-DM.png">
+
+<img src="img/SEMMA.jpeg">
+
+
+## Principais resultados
+
+- Definição e análise do ciclo de vida do cliente
+
+<img src="img/Ciclo-de-Vida-do-Cliente-por-Mes.png">
 
 ## Fontes de Dados
 
 - [Sistema de Pontos](https://www.kaggle.com/datasets/teocalvo/teomewhy-loyalty-system)
 - [Plataforma de Cursos](https://www.kaggle.com/datasets/teocalvo/teomewhy-education-platform)
+
+- [Link do repositório original](https://github.com/TeoMeWhy/loyalty-predict)
