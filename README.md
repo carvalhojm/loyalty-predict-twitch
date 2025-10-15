@@ -4,7 +4,7 @@
 
 Construindo uma solução de Data Science com o objetivo de identificar perda ou ganho de engajamento dos usuários da comunidade [Teo Me Why](https://teomewhy.org/).
 
-<img src="img/loyalty_predict_canva.png">
+<img src="img/loyalty_predict-2.png">
 
 
 # Índice
@@ -36,17 +36,21 @@ Construindo uma solução de Data Science com o objetivo de identificar perda ou
 - Integração com Ecossistema TMW
 
 As etapas seguiram as etapas metodologicas do CRISP-DM e do SEMMA para a criação do modelo.
+</center>
+<img src="img/CRISP-DM.png" width="500">
+</center>
 
-<img src="img/CRISP-DM.png">
-
-<img src="img/SEMMA.jpeg">
-
+</center>
+<img src="img/SEMMA.jpeg" width="500">
+</center>
 
 ## Principais resultados
 
 - Definição e análise do ciclo de vida do cliente
 
-<img src="img/Ciclo-de-Vida-do-Cliente-por-Mes.png">
+</center>
+<img src="img/Ciclo-de-Vida-do-Cliente-por-Mes.png" width="500">
+</center>
 
 ## Fontes de Dados
 
