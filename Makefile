@@ -30,18 +30,28 @@ setup:
 	$(VENV_PY) -m pip install -r requirements.txt
 
 # Executa os scripts
-.PHONY: run
-run:
+.PHONY: collect
+collect:
 	@echo "Executando scripts com o Python do venv..."
 	# Garante diretorios de dados necessarios (compativel com Git Bash)
 	@mkdir -p data/loyalty-system
 	# Executa get_data.py no diretório src/engineering (assim os caminhos relativos do script funcionam)
-	cd $(ENGINEERING_DIR) && KAGGLE_CONFIG_DIR=$(CURDIR) $(abspath $(VENV_PY)) get_data.py && \
-	cd ../analytics && KAGGLE_CONFIG_DIR=$(CURDIR) $(abspath $(VENV_PY)) pipeline_analytics.py
+	cd $(ENGINEERING_DIR) && KAGGLE_CONFIG_DIR=$(CURDIR) $(abspath $(VENV_PY)) get_data.py
+
+.PHONY: etl
+etl:
+	@echo "Executando scripts de feature store..."
+	cd $(ANALYTICS_DIR) && KAGGLE_CONFIG_DIR=$(CURDIR) $(abspath $(VENV_PY)) pipeline_analytics.py
+
+# precisa ter dado o comando "mlflow server" em outro bash antes
+.PHONY: predict
+predict:
+	@echo "Executando script de predicao..."
+	cd $(ANALYTICS_DIR) && $(abspath $(VENV_PY)) predict_fiel.py
 
 # Alvo padrão
 .PHONY: all
-all: setup run
+all: setup collect etl predict
 
 .PHONY: check-env
 check-env:
